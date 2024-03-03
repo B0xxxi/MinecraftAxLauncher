@@ -1,0 +1,10 @@
+﻿<Application x:Class="AxLauncher.App"
+             xmlns:xctl="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:AxLauncher"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+         
+    </Application.Resources>
+</Application>
