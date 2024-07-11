@@ -7,13 +7,14 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:AxLauncher" xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
-        Title="AxLauncher" Height="240" Width="420" ResizeMode="NoResize" Icon="/637325295580636683.ico" Background="White" WindowStyle="None" AllowsTransparency="True">
+        Title="AxLauncher" Height="335" Width="420" ResizeMode="NoResize" Icon="/637325295580636683.ico" Background="White" WindowStyle="None" AllowsTransparency="True">
 
     <Grid>
         <Grid.Background>
             <ImageBrush ImageSource="/BackGroun.png"/>
         </Grid.Background>
-        <Button x:Name="Play" Content="Играть" Margin="132,159,0,0" Height="60" Width="150" FontSize="28" VerticalAlignment="Top" HorizontalAlignment="Left" RenderTransformOrigin="0.5,0.5" FontFamily="Epilepsy Sans" FontWeight="Bold" Foreground="#FFCDDCCD" BorderBrush="{x:Null}">
+        <TextBox x:Name="LogTextBox" VerticalAlignment="Top" Height="100" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="0,234,0,0"/>
+        <Button x:Name="Play" Content="Играть" Margin="132,159,0,0" Height="60" Width="150" FontSize="28" VerticalAlignment="Top" HorizontalAlignment="Left" RenderTransformOrigin="0.5,0.5" FontFamily="Epilepsy Sans" FontWeight="Bold" Foreground="#FFCDDCCD" BorderBrush="{x:Null}" Click="Play_Click">
             <Button.Template>
                 <ControlTemplate TargetType="Button">
                     <Border x:Name="border"
@@ -51,9 +52,9 @@
                 </TransformGroup>
             </Button.RenderTransform>
         </Button>
-        <xctk:WatermarkTextBox Watermark="Login" HorizontalAlignment="Center" Margin="0,60,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="266" Height="25" FontSize="16" Name="Login" FontFamily="Epilepsy Sans"/>
+        <xctk:WatermarkTextBox Watermark="Login" HorizontalAlignment="Center" Margin="0,60,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="266" Height="25" FontSize="16" Name="Login" FontFamily="Epilepsy Sans" TextChanged="Login_TextChanged"/>
         <xctk:WatermarkPasswordBox Watermark="Password" HorizontalAlignment="Center" Margin="0,90,0,0" VerticalAlignment="Top" Width="266" Height="25" FontSize="16" Name="Pass" FontFamily="Epilepsy Sans"/>
-        <Slider HorizontalAlignment="Left" Margin="190,120,0,0" VerticalAlignment="Top" Width="153" Height="42" Minimum="1024" Maximum="16384" TickFrequency="1024" IsSnapToTickEnabled="True" TickPlacement="BottomRight" AutoToolTipPlacement="BottomRight"/>
+        <Slider HorizontalAlignment="Left" Margin="190,120,0,0" VerticalAlignment="Top" Width="153" Height="42" Minimum="1024" Maximum="16384" TickFrequency="1024" IsSnapToTickEnabled="True" TickPlacement="BottomRight" AutoToolTipPlacement="BottomRight" ValueChanged="Slider_ValueChanged" Name="Mem"/>
         <TextBlock HorizontalAlignment="Left" Margin="77,120,0,0" TextWrapping="Wrap" Text="Memory (In MB):" VerticalAlignment="Top" Width="108" Height="25" FontSize="16" FontFamily="Epilepsy Sans" Foreground="White"/>
         <Border BorderThickness="1" HorizontalAlignment="Center" Height="35" VerticalAlignment="Top" Width="424" Background="#FF1E1E1E" Margin="0,-5,0,0" MouseLeftButtonDown="Border_MouseLeftButtonDown">
             <Button Content=" X " FontFamily="Epilepsy Sans" FontSize="18" FontWeight="Bold" Foreground="White" BorderBrush="{x:Null}" RenderTransformOrigin="-0.05,0.517" Margin="0,1,2,2" Background="{x:Null}" HorizontalAlignment="Right" Width="25" VerticalAlignment="Bottom" Height="25" Click="CloseButton_Click">
