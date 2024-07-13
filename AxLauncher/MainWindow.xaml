@@ -11,9 +11,8 @@
 
     <Grid>
         <Grid.Background>
-            <ImageBrush ImageSource="/BackGroun.png"/>
+            <ImageBrush ImageSource="/images/BackGroun.png"/>
         </Grid.Background>
-        <TextBox x:Name="LogTextBox" VerticalAlignment="Top" Height="100" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="0,234,0,0"/>
         <Button x:Name="Play" Content="Играть" Margin="132,159,0,0" Height="60" Width="150" FontSize="28" VerticalAlignment="Top" HorizontalAlignment="Left" RenderTransformOrigin="0.5,0.5" FontFamily="Epilepsy Sans" FontWeight="Bold" Foreground="#FFCDDCCD" BorderBrush="{x:Null}" Click="Play_Click">
             <Button.Template>
                 <ControlTemplate TargetType="Button">
@@ -30,7 +29,7 @@
                             <!-- Указываем новый цвет фона -->
                             <Setter TargetName="border" Property="Background">
                                 <Setter.Value>
-                                    <ImageBrush ImageSource="/Vector 2.png"/>
+                                    <ImageBrush ImageSource="/images/Vector 2.png"/>
                                 </Setter.Value>
                             </Setter>
                         </Trigger>
@@ -38,10 +37,10 @@
                 </ControlTemplate>
             </Button.Template>
             <Button.Background>
-                <ImageBrush ImageSource="/Vector 1.png" Stretch="Uniform" TileMode="None"/>
+                <ImageBrush ImageSource="/images/Vector 1.png" Stretch="Uniform" TileMode="None"/>
             </Button.Background>
             <Button.OpacityMask>
-                <ImageBrush ImageSource="/Vector 2.png" Stretch="Fill"/>
+                <ImageBrush ImageSource="/images/Vector 2.png" Stretch="Fill"/>
             </Button.OpacityMask>
             <Button.RenderTransform>
                 <TransformGroup>
@@ -53,9 +52,9 @@
             </Button.RenderTransform>
         </Button>
         <xctk:WatermarkTextBox Watermark="Login" HorizontalAlignment="Center" Margin="0,60,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="266" Height="25" FontSize="16" Name="Login" FontFamily="Epilepsy Sans" TextChanged="Login_TextChanged"/>
-        <xctk:WatermarkPasswordBox Watermark="Password" HorizontalAlignment="Center" Margin="0,90,0,0" VerticalAlignment="Top" Width="266" Height="25" FontSize="16" Name="Pass" FontFamily="Epilepsy Sans"/>
+        <xctk:WatermarkPasswordBox Watermark="Password" HorizontalAlignment="Center" Margin="0,90,0,0" VerticalAlignment="Top" Width="266" Height="25" FontSize="16" Name="Pass" FontFamily="Epilepsy Sans" TextChanged="Pass_TextChanged"/>
         <Slider HorizontalAlignment="Left" Margin="190,120,0,0" VerticalAlignment="Top" Width="153" Height="42" Minimum="1024" Maximum="16384" TickFrequency="1024" IsSnapToTickEnabled="True" TickPlacement="BottomRight" AutoToolTipPlacement="BottomRight" ValueChanged="Slider_ValueChanged" Name="Mem"/>
-        <TextBlock HorizontalAlignment="Left" Margin="77,120,0,0" TextWrapping="Wrap" Text="Memory (In MB):" VerticalAlignment="Top" Width="108" Height="25" FontSize="16" FontFamily="Epilepsy Sans" Foreground="White"/>
+        <TextBlock HorizontalAlignment="Left" Margin="77,120,0,0" TextWrapping="Wrap" Text="Memory (In MB):" VerticalAlignment="Top" Width="108" Height="42" FontSize="16" FontFamily="Epilepsy Sans" Foreground="White"/>
         <Border BorderThickness="1" HorizontalAlignment="Center" Height="35" VerticalAlignment="Top" Width="424" Background="#FF1E1E1E" Margin="0,-5,0,0" MouseLeftButtonDown="Border_MouseLeftButtonDown">
             <Button Content=" X " FontFamily="Epilepsy Sans" FontSize="18" FontWeight="Bold" Foreground="White" BorderBrush="{x:Null}" RenderTransformOrigin="-0.05,0.517" Margin="0,1,2,2" Background="{x:Null}" HorizontalAlignment="Right" Width="25" VerticalAlignment="Bottom" Height="25" Click="CloseButton_Click">
                 <Button.Template>
