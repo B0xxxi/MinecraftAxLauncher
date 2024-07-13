@@ -65,7 +65,8 @@ namespace AxLauncher
         //Создание бат файла
         private void CreateScriptFile()
         {
-            string scriptFilePath = @"C:\Users\grafs\AppData\Roaming\.axcraft\start.bat";
+            string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData); //Поиск папки User
+            string scriptFilePath = System.IO.Path.Combine(userProfile, ".axcraft", "start.bat"); //Объединение строк в путь до bat файла
             if (!System.IO.File.Exists(scriptFilePath))
             {
                 //Создание файла и запись критериев
@@ -94,7 +95,8 @@ namespace AxLauncher
         // Password
         private void Pass_TextChanged(object sender, TextChangedEventArgs e)
         {
-
+            string login = Login.Text; // Задача переменной login
+            Console.WriteLine($"Login changed: {login}");
         }
 
         //Выбор оперативы
