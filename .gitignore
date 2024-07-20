@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/AxLauncher/Window1.xaml
+/AxLauncher/Window1.xaml.cs
+/XMLFile1.xml
