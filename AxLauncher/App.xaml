@@ -5,6 +5,6 @@
              xmlns:local="clr-namespace:AxLauncher"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-         
+        <FontFamily x:Key="MyCustomFont">/YourAssemblyName;component/Fonts/#MyFont</FontFamily>
     </Application.Resources>
 </Application>
