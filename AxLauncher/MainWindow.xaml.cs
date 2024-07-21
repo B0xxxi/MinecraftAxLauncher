@@ -84,7 +84,6 @@ namespace AxLauncher
 
         public async Task DownloadAllFilesFromSftpAsync()
         {
-            // Убедимся, что sftpHost инициализирован перед использованием
             if (string.IsNullOrEmpty(sftpHost))
             {
                 await LocalOrGlobal();
@@ -92,24 +91,35 @@ namespace AxLauncher
 
             using (var sftp = new SftpClient(sftpHost, sftpPort, sftpUsername, sftpPassword))
             {
-                await sftp.ConnectAsync(CancellationToken.None);
-                foreach (var file in sftp.ListDirectory(sftpRootPath))
+                sftp.Connect(); // Подключение к SFTP-серверу
+
+                foreach (var file in sftp.ListDirectory(sftpRootPath)) // Создание экземпляра SftpClient с указанными хостом, портом, именем пользователя и паролем
                 {
-                    if (!file.IsDirectory)
+                    if (!file.IsDirectory) // Проверка, что текущий элемент не является директорией.
                     {
-                        string remoteFilePath = file.FullName;
-                        string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData); //Поиск папки User
-                        string localFilePath = System.IO.Path.Combine(userProfile, ".axcraft", "mods");
-                        using (var fileStream = new FileStream(localFilePath, FileMode.Create))
+                        string remoteFilePath = file.FullName; // Полный путь к файлу на SFTP-сервере.
+                        string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData); // Получение пути к директории ApplicationData для текущего пользователя.
+                        string modsPath = System.IO.Path.Combine(userProfile, ".axcraft", "mods");  // Создание полного пути к директории ".axcraft/mods" в директории ApplicationData.
+
+                        // Создание директории, если она не существует
+                        if (!Directory.Exists(modsPath))
                         {
-                            // Асинхронная загрузка с BeginDownloadFile и EndDownloadFile
-                            var asyncResult = sftp.BeginDownloadFile(remoteFilePath, fileStream, null, null);
-                            await Task.Run(() => sftp.EndDownloadFile(asyncResult)); // Ожидание завершения
+                            Directory.CreateDirectory(modsPath);
                         }
-                        Console.WriteLine($"Downloaded: {file.Name}");
+
+                        string localFilePath = System.IO.Path.Combine(modsPath, file.Name); // Создание полного пути к локальному файлу, используя имя файла с SFTP-сервера.
+
+                        using (var fileStream = new FileStream(localFilePath, FileMode.Create, FileAccess.Write)) // Создание FileStream для записи файла на локальный диск.
+                        {
+                            var asyncResult = sftp.BeginDownloadFile(remoteFilePath, fileStream, null, null); // Начало асинхронного скачивания файла с SFTP-сервера в fileStream.
+                            await Task.Run(() => sftp.EndDownloadFile(asyncResult)); // Ожидание завершения асинхронного скачивания файла.
+                        }
+
+                        Console.WriteLine($"Downloaded: {file.Name}"); // Вывод сообщения о завершении скачивания файла.
                     }
                 }
-                sftp.Disconnect();
+
+                sftp.Disconnect(); // Отключение от SFTP-сервера.
             }
         }
 
