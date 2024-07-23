@@ -1,48 +1,40 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.Net;
 using System.IO;
 using System.Diagnostics;
-using System.ComponentModel;
 using Renci.SshNet;
-using System.Threading;
 using CmlLib.Core;
 using CmlLib.Core.Auth;
 using CmlLib.Core.Installer.Forge;
 using CmlLib.Core.Installers;
 using CmlLib.Core.ProcessBuilder;
-using Renci.SshNet.Common;
 using System.Net.Http;
-using System.Activities.DurableInstancing;
-using System.Workflow.Activities;
-using System.Speech.Recognition.SrgsGrammar;
 
 namespace AxLauncher
 {
     public partial class MainWindow : Window
     {
+        private string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        private bool filesChecked = false; // Добавим переменную для отслеживания состояния проверки файлов
+        private const string sftpUsername = "sftpuser";
+        private const string sftpPassword = "Olezja";
+        private string sftpHost;
+        private const int sftpPort = 22;
+        private const string sftpRootPath = "/test";
+        private readonly string[] foldersToDownload = { "mods", "kubejs", "packmenu" };
+
         public MainWindow()
         {
             InitializeComponent(); // Инициализация окна
         }
-        private async void InitializeAsync()
-        {
-            await DownloadAllFilesFromSftpAsync();
-        }
 
-        public async Task<string> GetPublicIPAsync()
+        private async Task<string> GetPublicIPAsync()
         {
             string url = "https://api.ipify.org?format=text";
 
@@ -62,7 +54,7 @@ namespace AxLauncher
             }
         }
 
-        public async Task LocalOrGlobal()
+        private async Task LocalOrGlobal()
         {
             string publicIP = await GetPublicIPAsync();
             if (publicIP == "136.169.223.12")
@@ -74,61 +66,62 @@ namespace AxLauncher
                 sftpHost = "136.169.223.12";
             }
         }
-
-        public string sftpHost;
-        private const int sftpPort = 22; // Обычно SFTP использует порт 22
-        private const string sftpUsername = "sftpuser";
-        public const string sftpPassword = "Olezja";
-        private const string sftpRootPath = "/test"; // Путь к корневой папке на сервере
-        private const string localFilePath = @"C:\Users\grafs\AppData\Roaming\.axcraft\mods";
-
-        public async Task DownloadAllFilesFromSftpAsync()
+        private async Task DownloadAllFilesFromSftpAsync(string remotePath, string localPath)
         {
             if (string.IsNullOrEmpty(sftpHost))
             {
                 await LocalOrGlobal();
             }
 
+            string localRootPath = System.IO.Path.Combine(userProfile, ".axcraft");
+
             using (var sftp = new SftpClient(sftpHost, sftpPort, sftpUsername, sftpPassword))
             {
-                sftp.Connect(); // Подключение к SFTP-серверу
+                sftp.Connect();
 
-                foreach (var file in sftp.ListDirectory(sftpRootPath)) // Создание экземпляра SftpClient с указанными хостом, портом, именем пользователя и паролем
+                var files = sftp.ListDirectory(remotePath);
+
+                foreach (var file in files)
                 {
-                    if (!file.IsDirectory) // Проверка, что текущий элемент не является директорией.
+                    string localFilePath = Path.Combine(localPath, file.Name);
+
+                    if (file.IsDirectory)
                     {
-                        string remoteFilePath = file.FullName; // Полный путь к файлу на SFTP-сервере.
-                        string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData); // Получение пути к директории ApplicationData для текущего пользователя.
-                        string modsPath = System.IO.Path.Combine(userProfile, ".axcraft", "mods");  // Создание полного пути к директории ".axcraft/mods" в директории ApplicationData.
-
-                        // Создание директории, если она не существует
-                        if (!Directory.Exists(modsPath))
+                        if (file.Name != "." && file.Name != "..")
                         {
-                            Directory.CreateDirectory(modsPath);
+                            if (!Directory.Exists(localFilePath))
+                            {
+                                Directory.CreateDirectory(localFilePath);
+                            }
+                            await DownloadAllFilesFromSftpAsync(file.FullName, localFilePath);
                         }
-
-                        string localFilePath = System.IO.Path.Combine(modsPath, file.Name); // Создание полного пути к локальному файлу, используя имя файла с SFTP-сервера.
-
-                        using (var fileStream = new FileStream(localFilePath, FileMode.Create, FileAccess.Write)) // Создание FileStream для записи файла на локальный диск.
+                    }
+                    else
+                    {
+                        using (var fileStream = new FileStream(localFilePath, FileMode.Create, FileAccess.Write))
                         {
-                            var asyncResult = sftp.BeginDownloadFile(remoteFilePath, fileStream, null, null); // Начало асинхронного скачивания файла с SFTP-сервера в fileStream.
-                            await Task.Run(() => sftp.EndDownloadFile(asyncResult)); // Ожидание завершения асинхронного скачивания файла.
+                            var asyncResult = sftp.BeginDownloadFile(file.FullName, fileStream, null, null);
+                            await Task.Run(() => sftp.EndDownloadFile(asyncResult));
                         }
-
-                        Console.WriteLine($"Downloaded: {file.Name}"); // Вывод сообщения о завершении скачивания файла.
+                        Console.WriteLine($"Downloaded: {file.Name}");
                     }
                 }
 
-                sftp.Disconnect(); // Отключение от SFTP-сервера.
+                sftp.Disconnect();
             }
         }
 
-
         private async Task CheckAndDownloadFile()
         {
-            // Асинхронное скачивание всех файлов
-            await DownloadAllFilesFromSftpAsync();
-            Console.WriteLine("Files downloaded from SFTP server.");
+
+            string localRootPath = System.IO.Path.Combine(userProfile, ".axcraft");
+
+            if (!filesChecked)
+            {
+                await DownloadAllFilesFromSftpAsync(sftpRootPath, localRootPath);
+                filesChecked = true;
+                Console.WriteLine("Files downloaded from SFTP server.");
+            }
         }
 
         void Border_MouseLeftButtonDown(object localSender, MouseButtonEventArgs e)
@@ -146,6 +139,11 @@ namespace AxLauncher
         void Login_TextChanged(object localSender, TextChangedEventArgs e)
         {
             login = Login.Text; // Задача переменной login слайдером
+            if (!Regex.IsMatch(login, "^[a-zA-Z0-9]*$"))
+            {
+                MessageBox.Show("Логин может содержать только английские буквы и цифры.");
+                Login.Text = Regex.Replace(login, "[^a-zA-Z0-9]", "");
+            }
             Console.WriteLine($"Login changed: {login}");
         }
 
@@ -168,22 +166,17 @@ namespace AxLauncher
         {
             try
             {
-                await CheckAndDownloadFile(); // Теперь можно использовать await
+                await CheckAndDownloadFile();
                 Console.WriteLine("Files downloaded successfully!");
-                Console.WriteLine("File download completed successfully.");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"An error occurred: {ex.Message}");
-                Console.WriteLine($"Error: {ex.Message}");
             }
             System.Net.ServicePointManager.DefaultConnectionLimit = 256;
 
-            string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            string minePath = System.IO.Path.Combine(userProfile, ".axcraft");
-            string modsPath = System.IO.Path.Combine(userProfile, ".axcraft", "mods");
-
-            var path = new MinecraftPath(minePath); // Стандартная директория
+            string minePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".axcraft");
+            var path = new MinecraftPath(minePath);
             var launcher = new MinecraftLauncher(path);
 
             // Лог загрузки в консоль
