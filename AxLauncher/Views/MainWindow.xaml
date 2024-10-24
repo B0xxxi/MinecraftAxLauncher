@@ -1,11 +1,14 @@
-﻿<Window x:Class="AxLauncher.MainWindow"
-        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+﻿<!-- Path: Views/MainWindow.xaml -->
+
+<Window x:Class="AxLauncher.Views.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:AxLauncher" 
+        xmlns:vm="clr-namespace:AxLauncher.ViewModels"
+        xmlns:local="clr-namespace:AxLauncher.Views"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         mc:Ignorable="d"
         Title="AxLauncher" Height="250" Width="420" ResizeMode="NoResize" 
         Icon="/637325295580636683.ico" Background="White" WindowStyle="None" 
@@ -14,13 +17,18 @@
         <FontFamily x:Key="PixelFont">/AxLauncher;component/Fonts/EpilepsySans.ttf#Epilepsy Sans Regular</FontFamily>
         <FontFamily x:Key="PixelFontBold">/AxLauncher;component/Fonts/EpilepsySansBold.ttf#Epilepsy Sans Bold</FontFamily>
     </Window.Resources>
+    <Window.DataContext>
+        <vm:MainViewModel />
+    </Window.DataContext>
     <Grid>
         <Grid.Background>
             <ImageBrush ImageSource="/images/BackGroun.png"/>
         </Grid.Background>
+        <!-- Кнопка "Играть" -->
         <Button x:Name="Play" Content="Играть" Margin="132,159,0,0" Height="60" Width="150" 
                 FontSize="28" VerticalAlignment="Top" HorizontalAlignment="Left" 
-                RenderTransformOrigin="0.5,0.5" FontFamily="{StaticResource PixelFontBold}" Foreground="#FFCDDCCD" BorderBrush="{x:Null}" Click="Play_Click" FontWeight="Bold">
+                RenderTransformOrigin="0.5,0.5" FontFamily="{StaticResource PixelFontBold}" Foreground="#FFCDDCCD" BorderBrush="{x:Null}" FontWeight="Bold"
+                Command="{Binding PlayCommand}">
             <Button.Template>
                 <ControlTemplate TargetType="Button">
                     <Border x:Name="border" Background="{TemplateBinding Background}" 
@@ -54,28 +62,27 @@
                 </TransformGroup>
             </Button.RenderTransform>
         </Button>
+        <!-- Поле для ввода логина -->
         <xctk:WatermarkTextBox Watermark="Login" HorizontalAlignment="Center" Margin="0,60,0,0" 
                                TextWrapping="Wrap" VerticalAlignment="Top" Width="266" Height="25" 
                                FontSize="16" Name="Login" FontFamily="{StaticResource PixelFont}" 
-                               TextChanged="Login_TextChanged"/>
-        <xctk:WatermarkPasswordBox Watermark="Password" HorizontalAlignment="Center" Margin="0,90,0,0" 
-                                   VerticalAlignment="Top" Width="266" Height="25" FontSize="16" 
-                                   Name="Pass" FontFamily="{StaticResource PixelFont}" 
-                                   TextChanged="Pass_TextChanged"/>
+                               Text="{Binding Login, UpdateSourceTrigger=PropertyChanged}"/>
+        <!-- Слайдер оперативной памяти -->
         <Slider HorizontalAlignment="Left" Margin="190,120,0,0" VerticalAlignment="Top" Width="153" 
                 Height="42" Minimum="1024" Maximum="16384" TickFrequency="1024" IsSnapToTickEnabled="True" 
                 TickPlacement="BottomRight" AutoToolTipPlacement="BottomRight" 
-                ValueChanged="Slider_ValueChanged" Name="Mem"/>
+                Value="{Binding RAM, UpdateSourceTrigger=PropertyChanged}"/>
         <TextBlock HorizontalAlignment="Left" Margin="77,120,0,0" TextWrapping="Wrap" 
                    Text="Memory (In MB):" VerticalAlignment="Top" Width="108" Height="42" 
                    FontSize="16" FontFamily="{StaticResource PixelFont}" Foreground="White"/>
+        <!-- Заголовок окна с кнопкой закрытия -->
         <Border BorderThickness="1" HorizontalAlignment="Center" Height="35" VerticalAlignment="Top" 
                 Width="424" Background="#FF1E1E1E" Margin="0,-5,0,0" MouseLeftButtonDown="Border_MouseLeftButtonDown">
             <Button Content=" X " FontFamily="{StaticResource PixelFont}" FontSize="18" 
                     FontWeight="Bold" Foreground="White" BorderBrush="{x:Null}" 
                     RenderTransformOrigin="-0.05,0.517" Margin="0,1,2,2" Background="{x:Null}" 
                     HorizontalAlignment="Right" Width="25" VerticalAlignment="Bottom" Height="25" 
-                    Click="CloseButton_Click">
+                    Command="{Binding CloseCommand}">
                 <Button.Template>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="back" Background="{TemplateBinding Background}" 
@@ -93,4 +100,4 @@
             </Button>
         </Border>
     </Grid>
-    </Window>
+</Window>
