@@ -17,7 +17,7 @@ namespace AxLauncher.Services
         private readonly MinecraftLauncher launcher;
         private readonly UserSettings userSettings;
         private const string mcVersion = "1.20.1";
-        private const string forgeVersion = "47.3.11";
+        private const string forgeVersion = "47.3.0";
 
         public MinecraftLauncherService(UserSettings settings)
         {

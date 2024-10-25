@@ -4,6 +4,7 @@ using System;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace AxLauncher.Services
 {
@@ -55,30 +56,73 @@ namespace AxLauncher.Services
 
             using var sftp = new SftpClient(sftpHost, sftpPort, sftpUsername, sftpPassword);
             sftp.Connect();
-            await DownloadAllFilesFromSftpAsync(sftp, sftpRootPath, localRootPath);
+            await DownloadAllFilesFromSftpAsync(sftp, sftpRootPath, localRootPath, true);
             sftp.Disconnect();
         }
 
-        private async Task DownloadAllFilesFromSftpAsync(SftpClient sftp, string remotePath, string localPath)
+        private async Task DownloadAllFilesFromSftpAsync(SftpClient sftp, string remotePath, string localPath, bool isRoot)
         {
-            var files = sftp.ListDirectory(remotePath);
-            foreach (var file in files)
+            var remoteFiles = sftp.ListDirectory(remotePath);
+
+            // Собираем имена файлов и папок на сервере
+            var remoteFileNames = new HashSet<string>();
+            foreach (var remoteFile in remoteFiles)
             {
-                string localFilePath = Path.Combine(localPath, file.Name);
-                if (file.IsDirectory)
+                if (remoteFile.Name == "." || remoteFile.Name == "..")
+                    continue;
+
+                remoteFileNames.Add(remoteFile.Name);
+
+                string localFilePath = Path.Combine(localPath, remoteFile.Name);
+
+                if (remoteFile.IsDirectory)
                 {
-                    if (file.Name != "." && file.Name != "..")
-                    {
-                        Directory.CreateDirectory(localFilePath);
-                        await DownloadAllFilesFromSftpAsync(sftp, file.FullName, localFilePath);
-                    }
+                    Directory.CreateDirectory(localFilePath);
+                    await DownloadAllFilesFromSftpAsync(sftp, remoteFile.FullName, localFilePath, false);
                 }
                 else
                 {
-                    using var fileStream = new FileStream(localFilePath, FileMode.Create, FileAccess.Write);
-                    var asyncResult = sftp.BeginDownloadFile(file.FullName, fileStream, null, null);
-                    await Task.Run(() => sftp.EndDownloadFile(asyncResult));
-                    Console.WriteLine($"Downloaded: {file.Name}");
+                    if (!File.Exists(localFilePath))
+                    {
+                        using var fileStream = new FileStream(localFilePath, FileMode.Create, FileAccess.Write);
+                        var asyncResult = sftp.BeginDownloadFile(remoteFile.FullName, fileStream, null, null);
+                        await Task.Run(() => sftp.EndDownloadFile(asyncResult));
+                        Console.WriteLine($"Загружено: {remoteFile.Name}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Пропущено (файл существует): {remoteFile.Name}");
+                    }
+                }
+            }
+
+            // Удаляем ненужные файлы в подкаталогах
+            var localEntries = Directory.GetFileSystemEntries(localPath);
+            foreach (var localEntry in localEntries)
+            {
+                var localName = Path.GetFileName(localEntry);
+                if (!remoteFileNames.Contains(localName))
+                {
+                    if (!isRoot) // Только в подкаталогах
+                    {
+                        try
+                        {
+                            if (Directory.Exists(localEntry))
+                            {
+                                Directory.Delete(localEntry, true);
+                                Console.WriteLine($"Удалена папка: {localEntry}");
+                            }
+                            else if (File.Exists(localEntry))
+                            {
+                                File.Delete(localEntry);
+                                Console.WriteLine($"Удален файл: {localEntry}");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Ошибка при удалении {localEntry}: {ex.Message}");
+                        }
+                    }
                 }
             }
         }
