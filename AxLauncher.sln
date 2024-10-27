@@ -3,18 +3,36 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34525.116
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AxLauncher", "AxLauncher\AxLauncher.csproj", "{1846690D-7C61-4C12-8848-4E35FD306031}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AxLauncher", "AxLauncher\AxLauncher.csproj", "{1846690D-7C61-4C12-8848-4E35FD306031}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
 		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+		Test|Any CPU = Test|Any CPU
+		Test|x64 = Test|x64
+		Test2|Any CPU = Test2|Any CPU
+		Test2|x64 = Test2|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{1846690D-7C61-4C12-8848-4E35FD306031}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{1846690D-7C61-4C12-8848-4E35FD306031}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1846690D-7C61-4C12-8848-4E35FD306031}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1846690D-7C61-4C12-8848-4E35FD306031}.Debug|x64.Build.0 = Debug|Any CPU
 		{1846690D-7C61-4C12-8848-4E35FD306031}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1846690D-7C61-4C12-8848-4E35FD306031}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1846690D-7C61-4C12-8848-4E35FD306031}.Release|x64.ActiveCfg = Release|x64
+		{1846690D-7C61-4C12-8848-4E35FD306031}.Release|x64.Build.0 = Release|x64
+		{1846690D-7C61-4C12-8848-4E35FD306031}.Test|Any CPU.ActiveCfg = Debug|Any CPU
+		{1846690D-7C61-4C12-8848-4E35FD306031}.Test|Any CPU.Build.0 = Debug|Any CPU
+		{1846690D-7C61-4C12-8848-4E35FD306031}.Test|x64.ActiveCfg = Test|x64
+		{1846690D-7C61-4C12-8848-4E35FD306031}.Test|x64.Build.0 = Test|x64
+		{1846690D-7C61-4C12-8848-4E35FD306031}.Test2|Any CPU.ActiveCfg = Test2|Any CPU
+		{1846690D-7C61-4C12-8848-4E35FD306031}.Test2|Any CPU.Build.0 = Test2|Any CPU
+		{1846690D-7C61-4C12-8848-4E35FD306031}.Test2|x64.ActiveCfg = Test2|Any CPU
+		{1846690D-7C61-4C12-8848-4E35FD306031}.Test2|x64.Build.0 = Test2|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
