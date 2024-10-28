@@ -25,6 +25,14 @@ namespace AxLauncher.Utilities
             remove => CommandManager.RequerySuggested -= value;
         }
 
-        public async void Execute(object parameter) => await execute(parameter);
+        public void Execute(object parameter)
+        {
+            _ = ExecuteAsync(parameter);
+        }
+
+        private async Task ExecuteAsync(object parameter)
+        {
+            await execute(parameter);
+        }
     }
 }

@@ -1,5 +1,4 @@
 ﻿// ViewModels/MainViewModel.cs
-
 using System;
 using System.ComponentModel;
 using System.Threading.Tasks;
@@ -13,9 +12,9 @@ namespace AxLauncher.ViewModels
 {
     public class MainViewModel : INotifyPropertyChanged
     {
-        private readonly UserSettings userSettings;
-        private readonly SftpService sftpService;
-        private readonly MinecraftLauncherService minecraftLauncherService;
+        public readonly UserSettings userSettings;
+        public readonly SftpService sftpService;
+        public readonly MinecraftLauncherService minecraftLauncherService;
         private bool filesChecked = false;
 
         public MainViewModel()
@@ -24,10 +23,7 @@ namespace AxLauncher.ViewModels
             sftpService = new SftpService();
             minecraftLauncherService = new MinecraftLauncherService(userSettings);
 
-            // Используем AsyncRelayCommand для асинхронной команды
             PlayCommand = new AsyncRelayCommand(async _ => await PlayAsync());
-
-            // Используем RelayCommand для синхронной команды
             CloseCommand = new RelayCommand(_ => CloseApplication());
         }
 
@@ -46,7 +42,7 @@ namespace AxLauncher.ViewModels
             }
         }
 
-        private int ram = 4096; // Значение по умолчанию
+        private int ram = 4096;
         public int RAM
         {
             get => ram;
@@ -61,16 +57,40 @@ namespace AxLauncher.ViewModels
             }
         }
 
+        private double progressValue;
+        public double ProgressValue
+        {
+            get => progressValue;
+            set
+            {
+                if (progressValue != value)
+                {
+                    progressValue = value;
+                    OnPropertyChanged(nameof(ProgressValue));
+                }
+            }
+        }
+
         public ICommand PlayCommand { get; }
         public ICommand CloseCommand { get; }
 
         private async Task PlayAsync()
         {
+            var overallProgress = new Progress<double>(value =>
+            {
+                ProgressValue = value;
+            }) as IProgress<double>;
+
             if (!filesChecked)
             {
                 try
                 {
-                    await sftpService.DownloadAllFilesAsync();
+                    var sftpProgress = new System.Progress<double>(value =>
+                    {
+                        overallProgress.Report(value * 0.5);
+                    });
+
+                    await sftpService.DownloadAllFilesAsync(sftpProgress);
                     filesChecked = true;
                     Console.WriteLine("Files downloaded successfully!");
                 }
@@ -78,13 +98,17 @@ namespace AxLauncher.ViewModels
                 {
                     Console.WriteLine($"Не удалось загрузить файлы с SFTP-сервера: {ex.Message}");
                     MessageBox.Show("Не удалось обновить файлы с сервера. Игра будет запущена без обновлений.", "Ошибка обновления", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    // Продолжаем без обновления файлов
                 }
             }
 
             try
             {
-                await minecraftLauncherService.LaunchMinecraftAsync();
+                var launchProgress = new System.Progress<double>(value =>
+                {
+                    overallProgress.Report(50 + value * 0.5);
+                });
+
+                await minecraftLauncherService.LaunchMinecraftAsync(launchProgress);
             }
             catch (Exception ex)
             {
@@ -98,7 +122,6 @@ namespace AxLauncher.ViewModels
             Application.Current.Shutdown();
         }
 
-        // Реализация интерфейса INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged(string name) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));

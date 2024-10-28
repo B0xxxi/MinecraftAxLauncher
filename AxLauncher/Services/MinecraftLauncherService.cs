@@ -27,14 +27,20 @@ namespace AxLauncher.Services
             launcher = new MinecraftLauncher(path);
         }
 
-        public async Task LaunchMinecraftAsync()
+        public async Task LaunchMinecraftAsync(IProgress<double> progress)
         {
             System.Net.ServicePointManager.DefaultConnectionLimit = 256;
 
             var fileProgress = new SyncProgress<InstallerProgressChangedEventArgs>(x =>
-                Console.WriteLine($"[{x.EventType}][{x.ProgressedTasks}/{x.TotalTasks}] {x.Name}"));
+            {
+                double percentage = ((double)x.ProgressedTasks / x.TotalTasks) * 100 * 0.5;
+                progress?.Report(50 + percentage * 0.5);
+                Console.WriteLine($"[{x.EventType}][{x.ProgressedTasks}/{x.TotalTasks}] {x.Name}");
+            });
             var byteProgress = new SyncProgress<ByteProgress>(x =>
-                Console.WriteLine(x.ToRatio() * 100 + "%"));
+            {
+                Console.WriteLine(x.ToRatio() * 100 + "%");
+            });
             var installerOutput = new SyncProgress<string>(x =>
                 Console.WriteLine(x));
 
@@ -47,18 +53,25 @@ namespace AxLauncher.Services
                 InstallerOutput = installerOutput,
             });
 
+            progress?.Report(75);
+
             var launchOption = new MLaunchOption
             {
                 MaximumRamMb = userSettings.RAM,
                 Session = MSession.CreateOfflineSession(userSettings.Login),
             };
 
-            Process process = await launcher.InstallAndBuildProcessAsync(versionName, launchOption);
+            Process process = await launcher.CreateProcessAsync(versionName, launchOption);
+
+            progress?.Report(85);
 
             var processUtil = new ProcessWrapper(process);
             processUtil.OutputReceived += (s, x) => Console.WriteLine(x);
             processUtil.StartWithEvents();
+            progress?.Report(100);
+
             await processUtil.WaitForExitTaskAsync();
         }
     }
 }
+

@@ -45,7 +45,7 @@ namespace AxLauncher.Services
             }
         }
 
-        public async Task DownloadAllFilesAsync()
+        public async Task DownloadAllFilesAsync(IProgress<double> progress)
         {
             if (string.IsNullOrEmpty(sftpHost))
             {
@@ -56,16 +56,26 @@ namespace AxLauncher.Services
 
             using var sftp = new SftpClient(sftpHost, sftpPort, sftpUsername, sftpPassword);
             sftp.Connect();
-            await DownloadAllFilesFromSftpAsync(sftp, sftpRootPath, localRootPath, true);
+            await DownloadAllFilesFromSftpAsync(sftp, sftpRootPath, localRootPath, true, progress);
             sftp.Disconnect();
         }
 
-        private async Task DownloadAllFilesFromSftpAsync(SftpClient sftp, string remotePath, string localPath, bool isRoot)
+        private async Task DownloadAllFilesFromSftpAsync(SftpClient sftp, string remotePath, string localPath, bool isRoot, IProgress<double> progress)
         {
             var remoteFiles = sftp.ListDirectory(remotePath);
 
-            // Собираем имена файлов и папок на сервере
             var remoteFileNames = new HashSet<string>();
+            double totalFiles = 0;
+            foreach (var remoteFile in remoteFiles)
+            {
+                if (remoteFile.Name != "." && remoteFile.Name != "..")
+                {
+                    totalFiles++;
+                }
+            }
+
+            double processedFiles = 0;
+
             foreach (var remoteFile in remoteFiles)
             {
                 if (remoteFile.Name == "." || remoteFile.Name == "..")
@@ -78,7 +88,7 @@ namespace AxLauncher.Services
                 if (remoteFile.IsDirectory)
                 {
                     Directory.CreateDirectory(localFilePath);
-                    await DownloadAllFilesFromSftpAsync(sftp, remoteFile.FullName, localFilePath, false);
+                    await DownloadAllFilesFromSftpAsync(sftp, remoteFile.FullName, localFilePath, false, progress);
                 }
                 else
                 {
@@ -86,7 +96,7 @@ namespace AxLauncher.Services
                     {
                         using var fileStream = new FileStream(localFilePath, FileMode.Create, FileAccess.Write);
                         var asyncResult = sftp.BeginDownloadFile(remoteFile.FullName, fileStream, null, null);
-                        await Task.Run(() => sftp.EndDownloadFile(asyncResult));
+                        await Task.Factory.FromAsync(asyncResult, sftp.EndDownloadFile);
                         Console.WriteLine($"Загружено: {remoteFile.Name}");
                     }
                     else
@@ -94,16 +104,19 @@ namespace AxLauncher.Services
                         Console.WriteLine($"Пропущено (файл существует): {remoteFile.Name}");
                     }
                 }
+
+                processedFiles++;
+                double percentage = (processedFiles / totalFiles) * 100 * 0.5;
+                progress?.Report(percentage);
             }
 
-            // Удаляем ненужные файлы в подкаталогах
             var localEntries = Directory.GetFileSystemEntries(localPath);
             foreach (var localEntry in localEntries)
             {
                 var localName = Path.GetFileName(localEntry);
                 if (!remoteFileNames.Contains(localName))
                 {
-                    if (!isRoot) // Только в подкаталогах
+                    if (!isRoot)
                     {
                         try
                         {
