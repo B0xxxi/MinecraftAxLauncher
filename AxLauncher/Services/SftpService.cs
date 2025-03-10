@@ -5,29 +5,56 @@ using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using AxLauncher.Utilities;
 
 namespace AxLauncher.Services
 {
-    public class SftpService
+    /// <summary>
+    /// Сервис для загрузки файлов с SFTP-сервера
+    /// </summary>
+    public class SftpService : ISftpService
     {
-        private const string sftpUsername = "sftpuser";
-        private const string sftpPassword = "Olezja";
-        private const int sftpPort = 22;
-        private const string sftpRootPath = "/test";
         private string sftpHost;
-        private readonly string userProfile;
-
+        
+        /// <summary>
+        /// Инициализирует новый экземпляр класса <see cref="SftpService"/>
+        /// </summary>
         public SftpService()
         {
-            userProfile = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            Logger.Info("Инициализирован SftpService");
         }
 
+        /// <summary>
+        /// Инициализирует хост SFTP на основе текущего IP-адреса
+        /// </summary>
+        /// <returns>Task, представляющий асинхронную операцию инициализации</returns>
         public async Task InitializeSftpHostAsync()
         {
-            string publicIP = await GetPublicIPAsync();
-            sftpHost = publicIP == "136.169.223.12" ? "192.168.1.69" : "136.169.223.12";
+            try
+            {
+                Logger.Info("Инициализация SFTP хоста...");
+                
+                if (string.IsNullOrEmpty(AppConfig.PrimaryServerIp) || string.IsNullOrEmpty(AppConfig.FallbackServerIp))
+                {
+                    throw new InvalidOperationException("Не настроены IP-адреса серверов. Пожалуйста, настройте конфигурационный файл.");
+                }
+                
+                string publicIP = await GetPublicIPAsync();
+                sftpHost = publicIP == AppConfig.PrimaryServerIp ? AppConfig.FallbackServerIp : AppConfig.PrimaryServerIp;
+                
+                Logger.Info($"SFTP хост инициализирован: {sftpHost}");
+            }
+            catch (Exception ex)
+            {
+                Logger.Exception(ex, "Ошибка при инициализации SFTP хоста");
+                throw;
+            }
         }
 
+        /// <summary>
+        /// Получает публичный IP-адрес
+        /// </summary>
+        /// <returns>IP-адрес в виде строки</returns>
         private async Task<string> GetPublicIPAsync()
         {
             string url = "https://api.ipify.org?format=text";
@@ -35,108 +62,185 @@ namespace AxLauncher.Services
             try
             {
                 string publicIP = await client.GetStringAsync(url);
-                Console.WriteLine("Ваш глобальный IP-адрес: " + publicIP);
+                Logger.Info("Ваш глобальный IP-адрес: " + publicIP);
                 return publicIP;
             }
-            catch (HttpRequestException e)
+            catch (HttpRequestException ex)
             {
-                Console.WriteLine("Ошибка при получении IP-адреса: " + e.Message);
+                Logger.Exception(ex, "Ошибка при получении IP-адреса");
                 return null;
             }
         }
 
+        /// <summary>
+        /// Загружает все необходимые файлы с SFTP-сервера
+        /// </summary>
+        /// <param name="progress">Объект для отслеживания прогресса загрузки</param>
+        /// <returns>Task, представляющий асинхронную операцию загрузки</returns>
         public async Task DownloadAllFilesAsync(IProgress<double> progress)
         {
-            if (string.IsNullOrEmpty(sftpHost))
+            try
             {
-                await InitializeSftpHostAsync();
+                Logger.Info("Начинаем загрузку файлов...");
+                if (string.IsNullOrEmpty(sftpHost))
+                {
+                    Logger.Info("SFTP хост не инициализирован, выполняем инициализацию...");
+                    await InitializeSftpHostAsync();
+                }
+
+                string localRootPath = AppConfig.GameDirectory;
+                Logger.Info($"Локальный путь: {localRootPath}");
+
+                // Создаем директорию, если она не существует
+                if (!Directory.Exists(localRootPath))
+                {
+                    Logger.Info($"Создаем директорию: {localRootPath}");
+                    Directory.CreateDirectory(localRootPath);
+                }
+
+                using var sftp = new SftpClient(sftpHost, AppConfig.SftpPort, AppConfig.SftpUsername, AppConfig.SftpPassword);
+                Logger.Info($"Подключаемся к SFTP серверу: {sftpHost}:{AppConfig.SftpPort} с пользователем: {AppConfig.SftpUsername}");
+                
+                try
+                {
+                    sftp.Connect();
+                    Logger.Info("Подключение к SFTP серверу установлено");
+                    
+                    await DownloadAllFilesFromSftpAsync(sftp, AppConfig.SftpRootPath, localRootPath, true, progress);
+                    
+                    sftp.Disconnect();
+                    Logger.Info("Отключение от SFTP сервера");
+                }
+                catch (Exception ex)
+                {
+                    Logger.Exception(ex, "Ошибка при работе с SFTP");
+                    throw;
+                }
             }
-
-            string localRootPath = Path.Combine(userProfile, ".axcraft");
-
-            using var sftp = new SftpClient(sftpHost, sftpPort, sftpUsername, sftpPassword);
-            sftp.Connect();
-            await DownloadAllFilesFromSftpAsync(sftp, sftpRootPath, localRootPath, true, progress);
-            sftp.Disconnect();
+            catch (Exception ex)
+            {
+                Logger.Exception(ex, "Ошибка при загрузке файлов");
+                throw;
+            }
         }
 
+        /// <summary>
+        /// Рекурсивно загружает файлы из указанной директории на SFTP-сервере
+        /// </summary>
+        /// <param name="sftp">Клиент SFTP</param>
+        /// <param name="remotePath">Удаленный путь на сервере</param>
+        /// <param name="localPath">Локальный путь для сохранения</param>
+        /// <param name="isRoot">Является ли директория корневой</param>
+        /// <param name="progress">Объект для отслеживания прогресса</param>
+        /// <returns>Task, представляющий асинхронную операцию</returns>
         private async Task DownloadAllFilesFromSftpAsync(SftpClient sftp, string remotePath, string localPath, bool isRoot, IProgress<double> progress)
         {
-            var remoteFiles = sftp.ListDirectory(remotePath);
-
-            var remoteFileNames = new HashSet<string>();
-            double totalFiles = 0;
-            foreach (var remoteFile in remoteFiles)
+            try
             {
-                if (remoteFile.Name != "." && remoteFile.Name != "..")
+                Logger.Info($"Обработка директории: {remotePath} -> {localPath}");
+                var remoteFiles = sftp.ListDirectory(remotePath);
+
+                var remoteFileNames = new HashSet<string>();
+                double totalFiles = 0;
+                foreach (var remoteFile in remoteFiles)
                 {
-                    totalFiles++;
-                }
-            }
-
-            double processedFiles = 0;
-
-            foreach (var remoteFile in remoteFiles)
-            {
-                if (remoteFile.Name == "." || remoteFile.Name == "..")
-                    continue;
-
-                remoteFileNames.Add(remoteFile.Name);
-
-                string localFilePath = Path.Combine(localPath, remoteFile.Name);
-
-                if (remoteFile.IsDirectory)
-                {
-                    Directory.CreateDirectory(localFilePath);
-                    await DownloadAllFilesFromSftpAsync(sftp, remoteFile.FullName, localFilePath, false, progress);
-                }
-                else
-                {
-                    if (!File.Exists(localFilePath))
+                    if (remoteFile.Name != "." && remoteFile.Name != "..")
                     {
-                        using var fileStream = new FileStream(localFilePath, FileMode.Create, FileAccess.Write);
-                        var asyncResult = sftp.BeginDownloadFile(remoteFile.FullName, fileStream, null, null);
-                        await Task.Factory.FromAsync(asyncResult, sftp.EndDownloadFile);
-                        Console.WriteLine($"Загружено: {remoteFile.Name}");
+                        totalFiles++;
+                    }
+                }
+
+                double processedFiles = 0;
+
+                foreach (var remoteFile in remoteFiles)
+                {
+                    if (remoteFile.Name == "." || remoteFile.Name == "..")
+                        continue;
+
+                    remoteFileNames.Add(remoteFile.Name);
+
+                    string localFilePath = Path.Combine(localPath, remoteFile.Name);
+
+                    if (remoteFile.IsDirectory)
+                    {
+                        if (!Directory.Exists(localFilePath))
+                        {
+                            Logger.Info($"Создаем директорию: {localFilePath}");
+                            Directory.CreateDirectory(localFilePath);
+                        }
+                        await DownloadAllFilesFromSftpAsync(sftp, remoteFile.FullName, localFilePath, false, progress);
                     }
                     else
                     {
-                        Console.WriteLine($"Пропущено (файл существует): {remoteFile.Name}");
+                        bool needDownload = true;
+                        
+                        if (File.Exists(localFilePath))
+                        {
+                            // Получаем размер локального файла и сравниваем с удаленным
+                            var localFileInfo = new FileInfo(localFilePath);
+                            if (localFileInfo.Length == remoteFile.Length)
+                            {
+                                Logger.Info($"Пропущено (файл совпадает по размеру): {remoteFile.Name}");
+                                needDownload = false;
+                            }
+                        }
+                        
+                        if (needDownload)
+                        {
+                            try
+                            {
+                                Logger.Info($"Загрузка файла: {remoteFile.Name} ({remoteFile.Length} байт)");
+                                using var fileStream = new FileStream(localFilePath, FileMode.Create, FileAccess.Write);
+                                var asyncResult = sftp.BeginDownloadFile(remoteFile.FullName, fileStream, null, null);
+                                await Task.Factory.FromAsync(asyncResult, sftp.EndDownloadFile);
+                                Logger.Info($"Загружено: {remoteFile.Name}");
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Exception(ex, $"Ошибка при загрузке файла {remoteFile.Name}");
+                            }
+                        }
                     }
+
+                    processedFiles++;
+                    double percentage = (processedFiles / totalFiles) * 100 * 0.5;
+                    progress?.Report(percentage);
                 }
 
-                processedFiles++;
-                double percentage = (processedFiles / totalFiles) * 100 * 0.5;
-                progress?.Report(percentage);
-            }
-
-            var localEntries = Directory.GetFileSystemEntries(localPath);
-            foreach (var localEntry in localEntries)
-            {
-                var localName = Path.GetFileName(localEntry);
-                if (!remoteFileNames.Contains(localName))
+                // Удаляем лишние файлы в локальной директории, которых нет на сервере
+                if (!isRoot) // Не удаляем файлы из корневой директории
                 {
-                    if (!isRoot)
+                    var localEntries = Directory.GetFileSystemEntries(localPath);
+                    foreach (var localEntry in localEntries)
                     {
-                        try
+                        var localName = Path.GetFileName(localEntry);
+                        if (!remoteFileNames.Contains(localName))
                         {
-                            if (Directory.Exists(localEntry))
+                            try
                             {
-                                Directory.Delete(localEntry, true);
-                                Console.WriteLine($"Удалена папка: {localEntry}");
+                                if (Directory.Exists(localEntry))
+                                {
+                                    Logger.Info($"Удаляем директорию: {localEntry}");
+                                    Directory.Delete(localEntry, true);
+                                }
+                                else if (File.Exists(localEntry))
+                                {
+                                    Logger.Info($"Удаляем файл: {localEntry}");
+                                    File.Delete(localEntry);
+                                }
                             }
-                            else if (File.Exists(localEntry))
+                            catch (Exception ex)
                             {
-                                File.Delete(localEntry);
-                                Console.WriteLine($"Удален файл: {localEntry}");
+                                Logger.Exception(ex, $"Ошибка при удалении {localEntry}");
                             }
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Ошибка при удалении {localEntry}: {ex.Message}");
                         }
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                Logger.Exception(ex, $"Ошибка при обработке директории {remotePath}");
+                throw;
             }
         }
     }

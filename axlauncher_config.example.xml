@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ConfigData xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <!-- Учетные данные для SFTP подключения -->
+  <SftpUsername>your_username</SftpUsername>
+  <SftpPassword>your_password</SftpPassword>
+  <SftpPort>22</SftpPort>
+  <SftpRootPath>/your/remote/path</SftpRootPath>
+  
+  <!-- Версии Minecraft и Forge -->
+  <MinecraftVersion>1.20.1</MinecraftVersion>
+  <ForgeVersion>47.3.11</ForgeVersion>
+  
+  <!-- Локальная директория для игры (если не указано, будет использоваться %APPDATA%\.axcraft) -->
+  <GameDirectory>C:\your\game\directory</GameDirectory>
+  
+  <!-- Предпочтительный объем памяти в МБ (по умолчанию 4096) -->
+  <DefaultRamMB>4096</DefaultRamMB>
+  
+  <!-- IP-адреса серверов (для автоматического выбора) -->
+  <PrimaryServerIp>xxx.xxx.xxx.xxx</PrimaryServerIp>
+  <FallbackServerIp>yyy.yyy.yyy.yyy</FallbackServerIp>
+</ConfigData> 
